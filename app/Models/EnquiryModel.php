@@ -11,7 +11,9 @@ class EnquiryModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $allowedFields    = [
-        'project_id', 
+        'project_id',
+        'company_id',
+        'status',
         'name', 
         'phone', 
         'email', 

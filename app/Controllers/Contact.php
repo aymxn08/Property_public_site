@@ -16,7 +16,7 @@ class Contact extends BaseController
 
     public function submit()
     {
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return redirect()->to('contact');
         }
 

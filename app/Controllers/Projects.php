@@ -81,14 +81,23 @@ class Projects extends BaseController
 
     public function submitEnquiry()
     {
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $projectId = $this->request->getPost('project_id');
+        $project = $this->projectModel->find($projectId);
+
+        if (!$project) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Project not found.']);
         }
 
         $enquiryModel = new EnquiryModel();
         
         $data = [
-            'project_id' => $this->request->getPost('project_id'),
+            'project_id' => $projectId,
+            'company_id' => $project['company_id'],
+            'status'     => 'New',
             'name'       => $this->request->getPost('name'),
             'phone'      => $this->request->getPost('phone'),
             'email'      => $this->request->getPost('email'),
