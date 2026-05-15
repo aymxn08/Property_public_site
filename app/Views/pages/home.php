@@ -96,7 +96,12 @@
                         <div class="property-card">
                             <div class="card-img-wrapper">
                                 <span class="badge-price">from ₹<?= number_format($project['starting_price'] / 100000, 1) ?> L</span>
-                                <img src="https://images.unsplash.com/photo-1582408921715-18e7806365c1?w=800&q=80" alt="<?= $project['project_name'] ?>">
+                                <?php
+                                $thumb = !empty($project['cover_image'])
+                                    ? base_url('uploads/projects/' . $project['cover_image'])
+                                    : base_url('img/placeholder-property.jpg');
+                                ?>
+                                <img src="<?= $thumb ?>" alt="<?= esc($project['project_name']) ?>">
                             </div>
                             <div class="p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-2">

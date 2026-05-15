@@ -2,8 +2,13 @@
 
 <?= $this->section('content') ?>
 
+<?php
+$heroBg = !empty($project['cover_image'])
+    ? base_url('uploads/projects/' . $project['cover_image'])
+    : base_url('img/placeholder-property.jpg');
+?>
 <!-- Hero Project Banner -->
-<section class="project-hero py-5 position-relative text-white" style="background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.9)), url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1920&q=80') center/cover no-repeat;">
+<section class="project-hero py-5 position-relative text-white" style="background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.9)), url('<?= $heroBg ?>') center/cover no-repeat;">
     <div class="container py-5">
         <div class="row align-items-center">
             <div class="col-lg-8" data-aos="fade-right">
@@ -47,32 +52,26 @@
                     <h3 class="mb-4">Project Gallery</h3>
                     <div class="swiper projectGallerySwiper rounded-4 overflow-hidden mb-3">
                         <div class="swiper-wrapper">
-                            <?php if(empty($images)): ?>
-                                <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&q=80" class="w-100 rounded-4" alt="Default"></div>
-                                <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80" class="w-100 rounded-4" alt="Default"></div>
-                                <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1582408921715-18e7806365c1?w=1200&q=80" class="w-100 rounded-4" alt="Default"></div>
-                            <?php else: ?>
-                                <?php foreach($images as $img): ?>
-                                    <div class="swiper-slide">
-                                        <img src="<?= base_url($img['image_path']) ?>" class="w-100 rounded-4" alt="Project Image">
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <?php 
+                            $allImages = [];
+                            if (!empty($project['cover_image'])) $allImages[] = base_url('uploads/projects/' . $project['cover_image']);
+                            foreach($images as $img) $allImages[] = base_url($img['image_path']);
+                            if (empty($allImages)) $allImages[] = base_url('img/placeholder-property.jpg');
+                            ?>
+                            <?php foreach($allImages as $imgPath): ?>
+                                <div class="swiper-slide">
+                                    <img src="<?= $imgPath ?>" class="w-100 rounded-4" style="height:500px; object-fit:cover;" alt="Project Image">
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                         <div class="swiper-button-next text-white"></div>
                         <div class="swiper-button-prev text-white"></div>
                     </div>
                     <div class="swiper thumbsSwiper">
                         <div class="swiper-wrapper">
-                             <?php if(empty($images)): ?>
-                                <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&q=80" class="rounded-3" alt="Thumb"></div>
-                                <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80" class="rounded-3" alt="Thumb"></div>
-                                <div class="swiper-slide"><img src="https://images.unsplash.com/photo-1582408921715-18e7806365c1?w=400&q=80" class="rounded-3" alt="Thumb"></div>
-                            <?php else: ?>
-                                <?php foreach($images as $img): ?>
-                                    <div class="swiper-slide"><img src="<?= base_url($img['image_path']) ?>" class="rounded-3" alt="Thumb"></div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <?php foreach($allImages as $imgPath): ?>
+                                <div class="swiper-slide"><img src="<?= $imgPath ?>" class="rounded-3" alt="Thumb"></div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>

@@ -71,7 +71,7 @@ class Builders extends BaseController
 
         // Build project query — enforce company_id
         $query = $this->projectModel
-            ->select('projects.*, project_types.type_name as category, (SELECT image_path FROM project_images WHERE project_id = projects.id ORDER BY id ASC LIMIT 1) as thumb')
+            ->select('projects.*, project_types.type_name as category, COALESCE(projects.cover_image, (SELECT image_path FROM project_images WHERE project_id = projects.id ORDER BY id ASC LIMIT 1)) as thumb')
             ->join('project_types', 'project_types.id = projects.project_type_id')
             ->where('projects.company_id', $company['id'])
             ->where('projects.status', 'Active');

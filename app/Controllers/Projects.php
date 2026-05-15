@@ -32,7 +32,7 @@ class Projects extends BaseController
         $query = $this->projectModel
             ->select('projects.*, project_types.type_name as category,
                       companies.company_name, companies.slug as company_slug,
-                      (SELECT image_path FROM project_images WHERE project_id = projects.id ORDER BY id ASC LIMIT 1) as thumb')
+                      COALESCE(projects.cover_image, (SELECT image_path FROM project_images WHERE project_id = projects.id ORDER BY id ASC LIMIT 1)) as thumb')
             ->join('project_types', 'project_types.id = projects.project_type_id')
             ->join('companies',     'companies.id = projects.company_id')
             ->where('projects.status', 'Active');

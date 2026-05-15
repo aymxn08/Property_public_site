@@ -24,7 +24,8 @@ class ProjectModel extends Model
         'starting_price', 
         'number_of_units', 
         'status',
-        'slug'
+        'slug',
+        'cover_image'
     ];
 
     // Dates

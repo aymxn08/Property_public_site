@@ -69,7 +69,7 @@
                     <?php
                         $thumb = !empty($p['thumb'])
                             ? base_url('uploads/projects/' . $p['thumb'])
-                            : 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80';
+                            : base_url('img/placeholder-property.jpg');
                         $priceStart = $p['price_start'] ?? 0;
                     ?>
                     <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="<?= ($i % 3) * 80 ?>">
