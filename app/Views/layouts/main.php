@@ -204,8 +204,8 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item"><a class="nav-link" href="<?= base_url() ?>">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="<?= base_url('projects/explore') ?>">Explore</a></li>
-                    <li class="nav-item"><a class="nav-link" href="<?= base_url('projects') ?>">Projects</a></li>
+                    <li class="nav-item"><a class="nav-link" href="<?= base_url('projects') ?>">Properties</a></li>
+                    <li class="nav-item"><a class="nav-link" href="<?= base_url('builders') ?>">Builders</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('contact') ?>">Contact</a></li>
                 </ul>
                 <div class="d-flex align-items-center gap-3">

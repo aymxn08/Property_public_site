@@ -20,8 +20,15 @@
                 <div class="d-flex align-items-center gap-4 py-3 border-top border-white border-opacity-25">
                     <div>
                         <span class="small text-white-50 d-block">Starting Price</span>
-                        <span class="fs-3 fw-bold">₹<?= number_format($project['starting_price'] / 100000, 1) ?> Lakhs</span>
+                        <?php $ps = $project['price_start'] ?? $project['starting_price'] ?? 0; ?>
+                        <span class="fs-3 fw-bold">₹<?= $ps >= 100000 ? number_format($ps / 100000, 1) . ' L' : number_format($ps) ?></span>
                     </div>
+                    <?php if (!empty($project['price_end']) && $project['price_end'] != $ps): ?>
+                    <div>
+                        <span class="small text-white-50 d-block">Up To</span>
+                        <span class="fs-5 fw-bold">₹<?= number_format($project['price_end'] / 100000, 1) ?> L</span>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="col-lg-4 text-center text-lg-end" data-aos="fade-left">
@@ -103,6 +110,67 @@
                     </div>
                 </div>
 
+                <!-- Dynamic Fields: Specs & Amenities -->
+                <?php if (!empty($groupedFields)): ?>
+                    <?php foreach ($groupedFields as $groupName => $fields): ?>
+                        <div class="mb-5" data-aos="fade-up">
+                            <h3 class="mb-4"><?= esc($groupName) ?></h3>
+                            <div class="row g-3">
+                                <?php foreach ($fields as $f): ?>
+                                    <div class="col-6 col-md-4">
+                                        <div class="bg-white p-3 rounded-4 shadow-sm border h-100 text-center">
+                                            <?php if ($f['field_type'] === 'Checkbox'): ?>
+                                                <?php $yes = ($f['existing_value'] == '1' || strtolower($f['existing_value']) == 'yes'); ?>
+                                                <div class="mb-2" style="font-size:1.4rem;color:<?= $yes ? '#059669' : '#cbd5e1' ?>">
+                                                    <i class="fas <?= $yes ? 'fa-check-circle' : 'fa-times-circle' ?>"></i>
+                                                </div>
+                                                <div class="small fw-semibold text-dark"><?= esc($f['field_name']) ?></div>
+                                                <div class="small text-muted"><?= $yes ? 'Available' : 'Not Available' ?></div>
+                                            <?php elseif ($f['field_type'] === 'Number'): ?>
+                                                <div class="fs-4 fw-bold text-primary mb-1"><?= esc($f['existing_value'] ?: '—') ?></div>
+                                                <div class="small text-muted"><?= esc($f['field_name']) ?></div>
+                                            <?php else: ?>
+                                                <div class="small text-muted mb-1"><?= esc($f['field_name']) ?></div>
+                                                <div class="fw-semibold text-dark"><?= esc($f['existing_value'] ?: '—') ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+
+                <!-- About Builder -->
+                <div class="company-info mb-5" data-aos="fade-up">
+                    <h3 class="mb-4">About the Builder</h3>
+                    <div class="bg-white p-4 rounded-4 shadow-sm border d-flex align-items-start gap-4 flex-wrap flex-md-nowrap">
+                        <?php if (!empty($project['company_logo'])): ?>
+                            <img src="http://localhost:8081/uploads/logos/<?= $project['company_logo'] ?>" alt="<?= esc($project['company_name']) ?>" style="width:100px;height:100px;object-fit:contain;border-radius:14px;background:#fff;border:1px solid #eee;padding:8px;flex-shrink:0;">
+                        <?php else: ?>
+                            <div style="width:100px;height:100px;background:linear-gradient(135deg,#1E3A8A,#3B82F6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:white;flex-shrink:0;">
+                                <?= strtoupper(substr($project['company_name'], 0, 2)) ?>
+                            </div>
+                        <?php endif; ?>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h5 class="fw-bold mb-0"><?= esc($project['company_name']) ?></h5>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size:11px;"><i class="fas fa-check-circle me-1"></i>Verified</span>
+                            </div>
+                            <p class="text-secondary mb-3" style="font-size:0.9rem;line-height:1.7;"><?= nl2br(esc($project['company_about'] ?: 'A premier real estate company committed to delivering quality living spaces.')) ?></p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <?php if (!empty($project['company_phone'])): ?>
+                                    <a href="tel:<?= $project['company_phone'] ?>" class="btn btn-sm btn-outline-primary rounded-pill"><i class="fas fa-phone-alt me-1"></i>Call Builder</a>
+                                    <a href="https://wa.me/91<?= preg_replace('/\D/', '', $project['company_phone']) ?>" class="btn btn-sm btn-success rounded-pill" target="_blank"><i class="fab fa-whatsapp me-1"></i>WhatsApp</a>
+                                <?php endif; ?>
+                                <?php if (!empty($project['company_slug'])): ?>
+                                    <a href="<?= base_url('builders/' . $project['company_slug']) ?>" class="btn btn-sm btn-outline-secondary rounded-pill"><i class="fas fa-building me-1"></i>View All Projects</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Map -->
                 <div class="location-map mb-5" data-aos="fade-up">
                     <h3 class="mb-4">Location on Google Maps</h3>
@@ -156,11 +224,15 @@
                         <div id="formStatus" class="mt-3 text-center small d-none"></div>
                     </div>
 
-                    <div class="mt-4 bg-primary bg-opacity-10 p-4 rounded-4 text-center">
-                        <p class="mb-2">Or contact us directly on WhatsApp</p>
-                        <a href="https://wa.me/919876543210" class="text-success text-decoration-none fw-bold fs-5">
-                            <i class="fab fa-whatsapp me-2"></i> +91 98765 43210
-                        </a>
+                    <div class="mt-4 bg-success bg-opacity-10 p-4 rounded-4 text-center">
+                        <p class="mb-2 small fw-semibold">Or contact the builder directly</p>
+                        <?php if (!empty($project['company_phone'])): ?>
+                            <a href="https://wa.me/91<?= preg_replace('/\D/', '', $project['company_phone']) ?>" class="text-success text-decoration-none fw-bold fs-5" target="_blank">
+                                <i class="fab fa-whatsapp me-2"></i><?= esc($project['company_phone']) ?>
+                            </a>
+                        <?php else: ?>
+                            <span class="text-muted small">Contact details not available</span>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

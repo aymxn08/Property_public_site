@@ -15,18 +15,27 @@ class Projects extends BaseController
     public function __construct()
     {
         $this->projectModel = new ProjectModel();
-        $this->typeModel = new ProjectTypeModel();
+        $this->typeModel    = new ProjectTypeModel();
     }
 
+    // ---------------------------------------------------------------
+    // Global marketplace listing (all companies, with filters)
+    // ---------------------------------------------------------------
     public function index()
     {
-        $type = $this->request->getGet('type');
+        $type     = $this->request->getGet('type');
         $location = $this->request->getGet('location');
-        $sort = $this->request->getGet('sort');
+        $sort     = $this->request->getGet('sort');
+        $minPrice = $this->request->getGet('min_price');
+        $maxPrice = $this->request->getGet('max_price');
 
-        $query = $this->projectModel->select('projects.*, project_types.type_name as category')
-                                   ->join('project_types', 'project_types.id = projects.project_type_id')
-                                   ->where('projects.status', 'Active');
+        $query = $this->projectModel
+            ->select('projects.*, project_types.type_name as category,
+                      companies.company_name, companies.slug as company_slug,
+                      (SELECT image_path FROM project_images WHERE project_id = projects.id ORDER BY id ASC LIMIT 1) as thumb')
+            ->join('project_types', 'project_types.id = projects.project_type_id')
+            ->join('companies',     'companies.id = projects.company_id')
+            ->where('projects.status', 'Active');
 
         if ($type) {
             $query->where('project_types.type_name', $type);
@@ -36,49 +45,102 @@ class Projects extends BaseController
             $query->like('projects.address', $location);
         }
 
-        if ($sort == 'price_low') {
-            $query->orderBy('starting_price', 'ASC');
-        } elseif ($sort == 'price_high') {
-            $query->orderBy('starting_price', 'DESC');
+        if ($minPrice && is_numeric($minPrice)) {
+            $query->where('projects.price_start >=', (int)$minPrice);
+        }
+
+        if ($maxPrice && is_numeric($maxPrice)) {
+            $query->where('projects.price_start <=', (int)$maxPrice);
+        }
+
+        // Sorting
+        if ($sort === 'price_low') {
+            $query->orderBy('projects.price_start', 'ASC');
+        } elseif ($sort === 'price_high') {
+            $query->orderBy('projects.price_start', 'DESC');
+        } elseif ($sort === 'popular') {
+            // popularity = enquiry count
+            $query->select('COUNT(e.id) as enq_count')
+                  ->join('enquiries e', 'e.project_id = projects.id', 'left')
+                  ->groupBy('projects.id')
+                  ->orderBy('enq_count', 'DESC');
         } else {
             $query->orderBy('projects.created_at', 'DESC');
         }
 
-        $data = [
-            'title' => 'Browse Projects',
-            'projects' => $query->paginate(9, 'default'),
-            'pager' => $query->pager,
-            'types' => $this->typeModel->findAll(),
-            'currentType' => $type,
+        return view('pages/projects', [
+            'title'           => 'Browse All Properties',
+            'projects'        => $query->paginate(9, 'default'),
+            'pager'           => $query->pager,
+            'types'           => $this->typeModel->findAll(),
+            'currentType'     => $type,
             'currentLocation' => $location,
-            'currentSort' => $sort
-        ];
-
-        return view('pages/projects', $data);
+            'currentSort'     => $sort,
+            'minPrice'        => $minPrice,
+            'maxPrice'        => $maxPrice,
+        ]);
     }
 
+    // ---------------------------------------------------------------
+    // Single project detail page with dynamic fields + company info
+    // ---------------------------------------------------------------
     public function details($slug)
     {
-        $project = $this->projectModel->select('projects.*, project_types.type_name as category')
-                                     ->join('project_types', 'project_types.id = projects.project_type_id')
-                                     ->where('slug', $slug)
-                                     ->first();
+        $db = \Config\Database::connect();
+
+        $project = $db->table('projects p')
+            ->select('p.*, pt.type_name as category,
+                      c.company_name, c.slug as company_slug, c.about as company_about,
+                      c.logo as company_logo, c.contact_number as company_phone, c.email as company_email')
+            ->join('project_types pt', 'pt.id = p.project_type_id')
+            ->join('companies c',      'c.id = p.company_id')
+            ->where('p.slug', $slug)
+            ->where('p.status', 'Active')
+            ->get()
+            ->getRowArray();
 
         if (!$project) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        // Images
         $imageModel = new ProjectImageModel();
-        
-        $data = [
-            'title' => $project['project_name'],
-            'project' => $project,
-            'images' => $imageModel->where('project_id', $project['id'])->findAll()
-        ];
+        $images = $imageModel->where('project_id', $project['id'])->findAll();
 
-        return view('pages/details', $data);
+        // Dynamic field values for this project
+        $fields = $db->table('project_type_fields ptf')
+            ->select('ptf.id, ptf.field_name, ptf.field_type, ptf.field_group, ptf.options_json, ptf.is_active,
+                      pfv.value as existing_value')
+            ->join('project_field_values pfv', 'pfv.project_type_field_id = ptf.id AND pfv.project_id = ' . $project['id'], 'left')
+            ->where('ptf.project_type_id', $project['project_type_id'])
+            ->groupStart()
+                ->where('ptf.is_active', 1)
+                ->orWhere('pfv.value IS NOT NULL')
+            ->groupEnd()
+            ->orderBy('ptf.field_group', 'ASC')
+            ->orderBy('ptf.id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        // Group fields: Property Specifications / Amenities / Other
+        $groupedFields = [];
+        foreach ($fields as $f) {
+            if (empty($f['existing_value']) && !$f['is_active']) continue; // skip empty legacy
+            $g = $f['field_group'] ?: 'Other';
+            $groupedFields[$g][] = $f;
+        }
+
+        return view('pages/details', [
+            'title'         => $project['project_name'] . ' | ' . $project['company_name'],
+            'project'       => $project,
+            'images'        => $images,
+            'groupedFields' => $groupedFields,
+        ]);
     }
 
+    // ---------------------------------------------------------------
+    // Submit enquiry (AJAX)
+    // ---------------------------------------------------------------
     public function submitEnquiry()
     {
         if (strtolower($this->request->getMethod()) !== 'post') {
@@ -86,14 +148,13 @@ class Projects extends BaseController
         }
 
         $projectId = $this->request->getPost('project_id');
-        $project = $this->projectModel->find($projectId);
+        $project   = $this->projectModel->find($projectId);
 
         if (!$project) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Project not found.']);
         }
 
         $enquiryModel = new EnquiryModel();
-        
         $data = [
             'project_id' => $projectId,
             'company_id' => $project['company_id'],
